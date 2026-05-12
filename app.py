@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import os, sys, threading
+import os, sys, threading, queue
 from pathlib import Path
 
 # Load .env
@@ -276,11 +276,29 @@ class App(ctk.CTk):
         self.gen_btn.configure(state="disabled", text="  Generating...")
         self.status_var.set("Menghubungi Claude AI...")
         self._clear_output(f"{tipe}: {topic}")
+        self._generating = True
+        self._start_queue_poll()
         threading.Thread(target=self._run_generate, args=(topic, tipe), daemon=True).start()
 
+    def _start_queue_poll(self):
+        self._chunk_queue = queue.Queue()
+        self._poll_queue()
+
+    def _poll_queue(self):
+        try:
+            while True:
+                chunk = self._chunk_queue.get_nowait()
+                if chunk is None:
+                    break
+                self._append_output(chunk)
+        except queue.Empty:
+            pass
+        if getattr(self, "_generating", False):
+            self.after(50, self._poll_queue)
+
     def _stream_chunk(self, text: str):
-        """Append chunk ke output box dari thread lain."""
-        self.after(0, lambda t=text: self._append_output(t))
+        """Taruh chunk ke queue — aman dari thread lain."""
+        self._chunk_queue.put(text)
 
     def _run_generate(self, topic, tipe):
         try:
@@ -335,11 +353,13 @@ class App(ctk.CTk):
             self.after(0, lambda: self._on_error(str(e)))
 
     def _on_done(self, tokens, path, tipe, topic):
+        self._generating = False
         self.token_label.configure(text=f"tokens: {tokens:,}  |  {Path(path).name}")
         self.status_var.set(f"Selesai  —  {Path(path).name}")
         self.gen_btn.configure(state="normal", text="  Generate  ▶")
 
     def _on_error(self, msg):
+        self._generating = False
         self._clear_output("Error")
         self._append_output(f"Error:\n\n{msg}")
         self.status_var.set("Error")
@@ -348,7 +368,6 @@ class App(ctk.CTk):
     def _clear_output(self, header=""):
         self.output.configure(state="normal")
         self.output.delete("1.0", "end")
-        self.output.configure(state="disabled")
         if header:
             self.hdr_label.configure(text=header)
 
@@ -356,7 +375,6 @@ class App(ctk.CTk):
         self.output.configure(state="normal")
         self.output.insert("end", text)
         self.output.see("end")
-        self.output.configure(state="disabled")
 
     def _set_output(self, text, header=""):
         self._clear_output(header)
