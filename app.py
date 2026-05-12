@@ -50,8 +50,8 @@ class App(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title("EduGen — AI Content Generator")
-        self.geometry("960x700")
-        self.minsize(820, 600)
+        self.geometry("1060x720")
+        self.minsize(900, 620)
         self.configure(fg_color=BG)
         self._set_icon()
         self._build()
@@ -75,7 +75,7 @@ class App(ctk.CTk):
 
     # ── Sidebar ────────────────────────────────────────────────────────────
     def _sidebar(self):
-        sb = ctk.CTkFrame(self, width=260, fg_color=CARD, corner_radius=0)
+        sb = ctk.CTkFrame(self, width=310, fg_color=CARD, corner_radius=0)
         sb.grid(row=0, column=0, sticky="nsew")
         sb.grid_propagate(False)
         sb.grid_rowconfigure(10, weight=1)
@@ -97,22 +97,37 @@ class App(ctk.CTk):
         ).place(relx=0.5, rely=0.75, anchor="center")
 
         pad = {"padx": 18, "pady": 6}
+        W = 274  # lebar elemen dalam sidebar
 
         # Tipe konten
         ctk.CTkLabel(sb, text="TIPE KONTEN", font=ctk.CTkFont(size=10, weight="bold"),
                      text_color=MUTED).grid(row=1, column=0, sticky="w", padx=18, pady=(20, 4))
 
         self.type_var = ctk.StringVar(value="Ide Konten")
-        self.type_seg = ctk.CTkSegmentedButton(
-            sb, values=list(TYPE_MAP.keys()),
-            variable=self.type_var,
-            command=self._on_type_change,
-            fg_color=CARD2, selected_color=BRAND2, selected_hover_color=BRAND,
-            unselected_color=CARD2, unselected_hover_color="#2a3828",
-            text_color=TEXT, font=ctk.CTkFont(size=11),
-            width=224,
-        )
-        self.type_seg.grid(row=2, column=0, **pad)
+        self._type_btns = {}
+
+        type_grid = ctk.CTkFrame(sb, fg_color="transparent")
+        type_grid.grid(row=2, column=0, padx=18, pady=4, sticky="w")
+
+        TYPE_ICONS = {
+            "Ide Konten":    "💡 Ide Konten",
+            "Script Video":  "🎬 Script Video",
+            "Caption":       "✍️ Caption",
+            "Paket Lengkap": "📦 Paket Lengkap",
+        }
+        positions = [(0,0),(0,1),(1,0),(1,1)]
+        for (r, c), (key, label) in zip(positions, TYPE_ICONS.items()):
+            btn = ctk.CTkButton(
+                type_grid, text=label,
+                width=130, height=36, corner_radius=8,
+                fg_color=BRAND2 if key == "Ide Konten" else CARD2,
+                hover_color=BRAND2,
+                text_color=TEXT, font=ctk.CTkFont(size=11, weight="bold"),
+                border_width=1, border_color="#3a5038",
+                command=lambda k=key: self._select_type(k),
+            )
+            btn.grid(row=r, column=c, padx=3, pady=3)
+            self._type_btns[key] = btn
 
         # Topik
         ctk.CTkLabel(sb, text="TOPIK / TOKOH", font=ctk.CTkFont(size=10, weight="bold"),
@@ -120,7 +135,7 @@ class App(ctk.CTk):
         self.topic_entry = ctk.CTkEntry(
             sb, placeholder_text='cth: "Ibnu Sina"',
             fg_color=CARD2, border_color="#3a4f38", text_color=TEXT,
-            placeholder_text_color=MUTED, height=38, width=224,
+            placeholder_text_color=MUTED, height=38, width=W,
             font=ctk.CTkFont(size=13),
         )
         self.topic_entry.grid(row=4, column=0, **pad)
@@ -136,7 +151,7 @@ class App(ctk.CTk):
             command=self._generate,
             fg_color=BRAND2, hover_color=BRAND,
             text_color="#ffffff", font=ctk.CTkFont(size=14, weight="bold"),
-            height=44, corner_radius=10, width=224,
+            height=44, corner_radius=10, width=274,
         )
         self.gen_btn.grid(row=6, column=0, padx=18, pady=(18, 6))
 
@@ -146,7 +161,7 @@ class App(ctk.CTk):
             command=self._copy,
             fg_color=CARD2, hover_color="#2a3828",
             text_color=MUTED, font=ctk.CTkFont(size=12),
-            height=36, corner_radius=10, width=224, border_width=1,
+            height=36, corner_radius=10, width=274, border_width=1,
             border_color="#3a4f38",
         )
         self.copy_btn.grid(row=7, column=0, padx=18, pady=4)
@@ -157,11 +172,19 @@ class App(ctk.CTk):
                      font=ctk.CTkFont(size=10), text_color=MUTED,
                      wraplength=220).grid(row=10, column=0, sticky="sw", padx=18, pady=12)
 
+    def _select_type(self, key):
+        self.type_var.set(key)
+        for k, btn in self._type_btns.items():
+            btn.configure(fg_color=BRAND2 if k == key else CARD2)
+        self._render_options()
+
     def _render_options(self):
         for w in self.opt_frame.winfo_children():
             w.destroy()
 
         t = self.type_var.get()
+
+        SW = 274  # slider width
 
         if t == "Ide Konten":
             ctk.CTkLabel(self.opt_frame, text="JUMLAH IDE", font=ctk.CTkFont(size=10, weight="bold"),
@@ -171,7 +194,7 @@ class App(ctk.CTk):
                           variable=self.count_var,
                           button_color=ACCENT, button_hover_color=BRAND,
                           progress_color=BRAND2, fg_color=CARD2,
-                          width=224).pack(anchor="w")
+                          width=SW).pack(anchor="w")
             self.count_lbl = ctk.CTkLabel(self.opt_frame, text="5 ide",
                                           font=ctk.CTkFont(size=11), text_color=ACCENT)
             self.count_lbl.pack(anchor="w")
@@ -186,7 +209,7 @@ class App(ctk.CTk):
                           variable=self.dur_var,
                           button_color=ACCENT, button_hover_color=BRAND,
                           progress_color=BRAND2, fg_color=CARD2,
-                          width=224).pack(anchor="w")
+                          width=SW).pack(anchor="w")
             self.dur_lbl = ctk.CTkLabel(self.opt_frame, text="10 menit",
                                         font=ctk.CTkFont(size=11), text_color=ACCENT)
             self.dur_lbl.pack(anchor="w")
@@ -205,7 +228,7 @@ class App(ctk.CTk):
                 ).pack(anchor="w", pady=2)
 
     def _on_type_change(self, _=None):
-        self._render_options()
+        self._select_type(self.type_var.get())
 
     # ── Main panel ─────────────────────────────────────────────────────────
     def _main_panel(self):
