@@ -1,0 +1,11 @@
+.env
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+outputs/packages/
+outputs/scripts/*.md
+outputs/captions/*.md
+outputs/ideas/*.md
+.DS_Store
