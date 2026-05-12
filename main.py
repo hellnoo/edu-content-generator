@@ -1,4 +1,15 @@
 #!/usr/bin/env python3
+import os, sys
+if sys.stdout.encoding != "utf-8":
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+from pathlib import Path
+_env = Path(__file__).parent / ".env"
+if _env.exists():
+    for line in _env.read_text().splitlines():
+        if "=" in line and not line.startswith("#"):
+            k, v = line.split("=", 1)
+            os.environ[k.strip()] = v.strip()
+
 """
 edu-content-generator — CLI untuk auto-generate konten edukasi Indonesia.
 
@@ -120,7 +131,7 @@ def main():
     p_pkg.add_argument("topic", help="Topik atau nama tokoh")
     p_pkg.add_argument("--duration", type=int, default=10, help="Durasi video (menit, default: 10)")
     p_pkg.add_argument("--angle", default="", help="Sudut pandang konten")
-    p_pkg.set_defaults(func=cmd_pkg)
+    p_pkg.set_defaults(func=cmd_package)
 
     args = parser.parse_args()
     args.func(args)
