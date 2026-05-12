@@ -275,22 +275,26 @@ class App(ctk.CTk):
 
         self.gen_btn.configure(state="disabled", text="  Generating...")
         self.status_var.set("Menghubungi Claude AI...")
-        self._set_output("Sedang generate konten...\n\nMohon tunggu sebentar.", f"{tipe}: {topic}")
+        self._clear_output(f"{tipe}: {topic}")
         threading.Thread(target=self._run_generate, args=(topic, tipe), daemon=True).start()
+
+    def _stream_chunk(self, text: str):
+        """Append chunk ke output box dari thread lain."""
+        self.after(0, lambda t=text: self._append_output(t))
 
     def _run_generate(self, topic, tipe):
         try:
-            result_text = ""
             tokens = 0
             saved_path = ""
+            result = None
+            package = None
 
             if tipe == "Ide Konten":
                 count = getattr(self, "count_var", None)
                 count = count.get() if count else 5
                 req = ContentRequest(topic=topic, content_type=ContentType.IDEAS,
                                      theme=topic, idea_count=count)
-                result = generate_ideas(req)
-                result_text = result.content
+                result = generate_ideas(req, on_chunk=self._stream_chunk)
                 tokens = result.tokens_used
                 saved_path = str(save_content(result))
 
@@ -299,8 +303,7 @@ class App(ctk.CTk):
                 dur = dur.get() if dur else 10
                 req = ContentRequest(topic=topic, content_type=ContentType.SCRIPT,
                                      duration_minutes=dur)
-                result = generate_script(req)
-                result_text = result.content
+                result = generate_script(req, on_chunk=self._stream_chunk)
                 tokens = result.tokens_used
                 saved_path = str(save_content(result))
 
@@ -310,44 +313,54 @@ class App(ctk.CTk):
                 platform  = PLATFORM_MAP[plat_name]
                 req = ContentRequest(topic=topic, content_type=ContentType.CAPTION,
                                      platform=platform)
-                result = generate_caption(req)
-                result_text = result.content
+                result = generate_caption(req, on_chunk=self._stream_chunk)
                 tokens = result.tokens_used
                 saved_path = str(save_content(result))
 
             elif tipe == "Paket Lengkap":
                 dur = getattr(self, "dur_var", None)
                 dur = dur.get() if dur else 10
-                self.after(0, lambda: self.status_var.set("Generating paket lengkap (5 langkah)..."))
-                package = generate_full_package(topic=topic, duration_minutes=dur)
+                package = generate_full_package(
+                    topic=topic, duration_minutes=dur,
+                    on_step=lambda s: self.after(0, lambda m=s: self.status_var.set(m)),
+                    on_chunk=self._stream_chunk,
+                )
                 pkg_dir = save_package(package)
-                result_text = _format_package(package)
                 tokens = package.total_tokens
                 saved_path = str(pkg_dir)
 
-            self.after(0, lambda: self._on_done(result_text, tokens, saved_path, tipe, topic))
+            self.after(0, lambda: self._on_done(tokens, saved_path, tipe, topic))
 
         except Exception as e:
             self.after(0, lambda: self._on_error(str(e)))
 
-    def _on_done(self, text, tokens, path, tipe, topic):
-        self._set_output(text, f"{tipe}: {topic}")
-        self.token_label.configure(text=f"tokens: {tokens:,}  |  disimpan: {Path(path).name}")
+    def _on_done(self, tokens, path, tipe, topic):
+        self.token_label.configure(text=f"tokens: {tokens:,}  |  {Path(path).name}")
         self.status_var.set(f"Selesai  —  {Path(path).name}")
         self.gen_btn.configure(state="normal", text="  Generate  ▶")
 
     def _on_error(self, msg):
-        self._set_output(f"Error:\n\n{msg}", "Error")
+        self._clear_output("Error")
+        self._append_output(f"Error:\n\n{msg}")
         self.status_var.set("Error")
         self.gen_btn.configure(state="normal", text="  Generate  ▶")
 
-    def _set_output(self, text, header=""):
+    def _clear_output(self, header=""):
         self.output.configure(state="normal")
         self.output.delete("1.0", "end")
-        self.output.insert("end", text)
         self.output.configure(state="disabled")
         if header:
             self.hdr_label.configure(text=header)
+
+    def _append_output(self, text: str):
+        self.output.configure(state="normal")
+        self.output.insert("end", text)
+        self.output.see("end")
+        self.output.configure(state="disabled")
+
+    def _set_output(self, text, header=""):
+        self._clear_output(header)
+        self._append_output(text)
 
     def _copy(self):
         text = self.output.get("1.0", "end").strip()
