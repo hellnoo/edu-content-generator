@@ -271,6 +271,15 @@ class App(ctk.CTk):
         )
         self.token_label.place(relx=0.97, rely=0.5, anchor="e")
 
+        # Progress bar (tersembunyi saat idle)
+        self.progress = ctk.CTkProgressBar(
+            panel, mode="indeterminate",
+            fg_color=CARD2, progress_color=BRAND,
+            height=3, corner_radius=0,
+        )
+        self.progress.grid(row=1, column=0, sticky="ew", padx=0, pady=0)
+        self.progress.grid_remove()
+
         # Output box
         self.output = ctk.CTkTextbox(
             panel, fg_color=CARD, text_color=TEXT,
@@ -279,7 +288,8 @@ class App(ctk.CTk):
             wrap="word", corner_radius=0,
             border_width=0,
         )
-        self.output.grid(row=1, column=0, sticky="nsew", padx=0, pady=0)
+        self.output.grid(row=2, column=0, sticky="nsew", padx=0, pady=0)
+        panel.grid_rowconfigure(2, weight=1)
         self.output.insert("end", _WELCOME)
         self.output.configure(state="disabled")
 
@@ -297,6 +307,8 @@ class App(ctk.CTk):
         self._clear_output(f"{tipe}: {topic}")
         self._generating = True
         self._start_queue_poll()
+        self.progress.grid()
+        self.progress.start()
         threading.Thread(target=self._run_generate, args=(topic, tipe), daemon=True).start()
 
     def _start_queue_poll(self):
@@ -373,12 +385,16 @@ class App(ctk.CTk):
 
     def _on_done(self, tokens, path, tipe, topic):
         self._generating = False
+        self.progress.stop()
+        self.progress.grid_remove()
         self.token_label.configure(text=f"tokens: {tokens:,}  |  {Path(path).name}")
         self.status_var.set(f"Selesai  —  {Path(path).name}")
         self.gen_btn.configure(state="normal", text="  Generate  ▶")
 
     def _on_error(self, msg):
         self._generating = False
+        self.progress.stop()
+        self.progress.grid_remove()
         self._clear_output("Error")
         self._append_output(f"Error:\n\n{msg}")
         self.status_var.set("Error")
