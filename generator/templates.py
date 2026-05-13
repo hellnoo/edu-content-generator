@@ -35,12 +35,15 @@ Buat caption yang:
 - Dimulai dengan hook 1-2 kalimat yang bikin orang berhenti scroll
 - Ada nilai/insight yang bisa langsung diambil
 - Ending dengan pertanyaan atau CTA yang mengundang komen
-- Sesuai karakter platform ({platform})
+- Sesuai karakter platform {platform}
 
-{'Format Instagram: paragraf pendek, line break banyak, 5-10 hashtag relevan di akhir' if '{platform}' == 'Instagram' else ''}
-{'Format TikTok: singkat, energetik, 3-5 hashtag trending' if '{platform}' == 'TikTok' else ''}
-{'Format Twitter/X: max 280 karakter atau thread, langsung to the point' if '{platform}' == 'Twitter' else ''}
-{'Format YouTube: deskripsi 200-300 kata, timestamps, keywords SEO' if '{platform}' == 'YouTube' else ''}
+Format khusus per platform:
+- Instagram: paragraf pendek, banyak line break, 5-10 hashtag relevan di akhir
+- TikTok: singkat dan energetik, 3-5 hashtag trending
+- Twitter/X: max 280 karakter atau thread, langsung to the point
+- YouTube: deskripsi 200-300 kata, timestamps jika perlu, keywords SEO
+
+Sesuaikan format di atas dengan platform {platform} yang diminta.
 
 Caption:"""
 
