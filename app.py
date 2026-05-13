@@ -79,6 +79,7 @@ class App(ctk.CTk):
         sb.grid(row=0, column=0, sticky="nsew")
         sb.grid_propagate(False)
         sb.grid_rowconfigure(10, weight=1)
+        sb.grid_columnconfigure(0, weight=1)
 
         # Logo area
         logo_frame = ctk.CTkFrame(sb, fg_color=CARD2, corner_radius=0, height=90)
@@ -218,14 +219,32 @@ class App(ctk.CTk):
 
         elif t == "Caption":
             ctk.CTkLabel(self.opt_frame, text="PLATFORM", font=ctk.CTkFont(size=10, weight="bold"),
-                         text_color=MUTED).pack(anchor="w", pady=(10, 3))
+                         text_color=MUTED).pack(anchor="w", pady=(10, 6))
             self.platform_var = ctk.StringVar(value="Instagram")
-            for p in PLATFORM_MAP:
-                ctk.CTkRadioButton(
-                    self.opt_frame, text=p, variable=self.platform_var, value=p,
-                    fg_color=BRAND, hover_color=BRAND2, text_color=TEXT,
+            self._platform_btns = {}
+            PLATFORM_ICONS = {
+                "YouTube":   "▶  YouTube",
+                "Instagram": "◈  Instagram",
+                "TikTok":    "♪  TikTok",
+                "Twitter":   "✦  Twitter/X",
+            }
+            for p, label in PLATFORM_ICONS.items():
+                btn = ctk.CTkButton(
+                    self.opt_frame, text=label,
+                    width=274, height=34, corner_radius=8, anchor="w",
+                    fg_color=BRAND2 if p == "Instagram" else CARD2,
+                    hover_color=BRAND2, text_color=TEXT,
                     font=ctk.CTkFont(size=12),
-                ).pack(anchor="w", pady=2)
+                    border_width=1, border_color="#3a5038",
+                    command=lambda k=p: self._select_platform(k),
+                )
+                btn.pack(anchor="w", pady=3)
+                self._platform_btns[p] = btn
+
+    def _select_platform(self, key):
+        self.platform_var.set(key)
+        for k, btn in self._platform_btns.items():
+            btn.configure(fg_color=BRAND2 if k == key else CARD2)
 
     def _on_type_change(self, _=None):
         self._select_type(self.type_var.get())
